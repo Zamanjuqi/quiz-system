@@ -1036,20 +1036,8 @@
         </div>
 
         <!-- Cart Item -->
-        <div class="cart-item" id="cartItem">
-          <div class="cart-item-header">
-            <div>
-              <div class="cart-item-name">Kurdistan Quiz</div>
-              <div class="cart-item-details" id="cartQueue">Queue: -</div>
-              <div class="cart-item-details"><span id="cartDay"></span></div>
-              <div class="cart-item-details"><span id="cartFields"></span></div>
-            </div>
-            <div style="display: flex; align-items: center;">
-              <span class="cart-item-price" id="cartPrice"></span>
-              <button class="cart-item-remove"><i class="fas fa-times"></i></button>
-            </div>
-          </div>
-        </div>
+        <div id="cartItems"></div>
+      
 
         <!-- Summary -->
         <div class="summary-section">
@@ -1142,7 +1130,7 @@
   const successSound = new Audio("https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3");
   
   
-  let currentTicket = null;
+  let cart = [];
   let givenAmount = 0;
   
   const $ = (id) => document.getElementById(id);
@@ -1155,6 +1143,60 @@
   function formatPrice(n){
     return n.toLocaleString('de-DE') + ' IQD';
   }
+  function updateCartUI(){
+
+if(cart.length === 0){
+  resetUI();
+  return;
+}
+
+let total = 0;
+let totalFields = 0;
+
+const container = document.getElementById('cartItems');
+container.innerHTML = ''; // 🧹 reset UI
+
+cart.forEach((ticket, index) => {
+
+  const price = ticket.fields * PRICE_PER_FIELD;
+  total += price;
+  totalFields += ticket.fields;
+
+  const item = document.createElement('div');
+  item.className = 'cart-item';
+
+  item.innerHTML = `
+    <div class="cart-item-header">
+      <div>
+        <div class="cart-item-name">Kurdistan Quiz</div>
+        <div class="cart-item-details">Queue: ${ticket.queue}</div>
+        <div class="cart-item-details">${ticket.day}</div>
+        <div class="cart-item-details">${ticket.fields} Feld</div>
+      </div>
+      <div style="display:flex; align-items:center;">
+        <span class="cart-item-price">${formatPrice(price)}</span>
+        <button class="cart-item-remove" onclick="removeTicket(${index})">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+    </div>
+  `;
+
+  container.appendChild(item);
+});
+
+// 🔢 Summary
+$('cartPositions').textContent = cart.length;
+$('cartQuantity').textContent = totalFields + " Feld";
+$('cartTotal').textContent = formatPrice(total);
+$('paymentAmount').textContent = formatPrice(total);
+
+$('kassierenBtn').disabled = false;
+}
+window.removeTicket = function(index){
+  cart.splice(index, 1);
+  updateCartUI();
+};
   
   async function loadTicket() {
   const queue = parseInt($('queueInput').value);
@@ -1164,17 +1206,14 @@
     return;
   }
 
-  const now = new Date();
-
   const { data, error } = await sb
-  .from("tickets")
-  .select("*")
-  .eq("queue", queue)
-  .eq("status", "unpaid")
-  .limit(1);
+    .from("tickets")
+    .select("*")
+    .eq("queue", queue)
+    .eq("status", "unpaid")
+    .limit(1);
 
   if (error) {
-    console.error(error);
     showModal("❌ Fehler", "DB Fehler");
     return;
   }
@@ -1184,33 +1223,34 @@
     return;
   }
 
-  currentTicket = data[0];
+  const ticket = data[0];
+  // ❌ Doppeltes Ticket verhindern
+if (cart.some(t => t.id === ticket.id)) {
+  showModal("⚠️ Hinweis", "Ticket bereits im Warenkorb");
+  return;
+}
 
-  
+  // 🔥 NEU: Ticket in Warenkorb speichern
+  cart.push(ticket);
 
-  const price = currentTicket.fields * PRICE_PER_FIELD;
-
-  $('cartQueue').textContent = "Queue: " + currentTicket.queue;
-  $('cartDay').textContent = currentTicket.day;
-  $('cartFields').textContent = currentTicket.fields + " Feld";
-  $('cartPrice').textContent = formatPrice(price);
-
-  $('cartPositions').textContent = "1";
-  $('cartQuantity').textContent = currentTicket.fields + " Feld";
-  $('cartTotal').textContent = formatPrice(price);
-  $('paymentAmount').textContent = formatPrice(price);
-  $('kassierenBtn').disabled = false;
+  // 🔥 UI aktualisieren
+  updateCartUI();
 }
   
   
-  function calculateChange(){
-    if(!currentTicket) return;
-  
-    const price = currentTicket.fields * PRICE_PER_FIELD;
-    const change = Math.max(0, givenAmount - price);
-  
-    $('changeAmount').textContent = formatPrice(change);
-  }
+function calculateChange(){
+  if(cart.length === 0) return;
+
+  let total = 0;
+
+  cart.forEach(ticket => {
+    total += ticket.fields * PRICE_PER_FIELD;
+  });
+
+  const change = Math.max(0, givenAmount - total);
+
+  $('changeAmount').textContent = formatPrice(change);
+}
   
   $('givenAmount').addEventListener('input', (e)=>{
     givenAmount = parseInt(e.target.value.replace(/\D/g,'')) || 0;
@@ -1227,33 +1267,38 @@
   });
   
   async function checkout(){
-    if (!currentTicket) {
+    if (cart.length === 0) {
       showModal("❌ Fehler", "Kein Ticket geladen");
   return;
 }
   
-    const price = currentTicket.fields * PRICE_PER_FIELD;
+let total = 0;
+
+cart.forEach(ticket => {
+  total += ticket.fields * PRICE_PER_FIELD;
+});
   
-    if(givenAmount < price){
+    if(givenAmount < total){
       showModal("⚠️ Zu wenig Geld", "Bitte mehr eingeben");
       return;
     }
   
-    const { error } = await sb
-  .from("tickets")
-  .update({
-    status: "paid",
-  })
-  .eq("id", currentTicket.id);
+    for (const ticket of cart) {
+  const { error } = await sb
+    .from("tickets")
+    .update({ status: "paid" })
+    .eq("id", ticket.id);
+
+  if (error) {
+    showModal("❌ Fehler", "Fehler beim Bezahlen");
+    return;
+  }
+}
   
-    if(error){
-      showModal("❌ Fehler", "Fehler beim Bezahlen");
-      return;
-    }
-  
+   
 
     $('successText').textContent =
-  "Rückgeld: " + formatPrice(givenAmount - price);
+  "Rückgeld: " + formatPrice(givenAmount - total);
 
 $('successModal').style.display = "flex";
 successSound.play();
@@ -1263,19 +1308,23 @@ $('queueInput').focus();
   }
   
   function resetUI(){
-    currentTicket = null;
-    givenAmount = 0;
-  
-    $('queueInput').value = '';
-    $('givenAmount').value = '';
-    $('changeAmount').textContent = '';
-  
-    [
-      'cartQueue','cartDay','cartFields','cartPrice',
-      'cartPositions','cartQuantity','cartTotal','paymentAmount'
-    ].forEach(id => $(id).textContent = '');
-    $('kassierenBtn').disabled = true;
-  }
+  cart = [];
+  givenAmount = 0;
+
+  $('queueInput').value = '';
+  $('givenAmount').value = '';
+  $('changeAmount').textContent = '0 IQD';
+
+  // 🔥 GANZ WICHTIG: UI leeren
+  document.getElementById('cartItems').innerHTML = '';
+
+  $('cartPositions').textContent = '';
+  $('cartQuantity').textContent = '';
+  $('cartTotal').textContent = '';
+  $('paymentAmount').textContent = '';
+
+  $('kassierenBtn').disabled = true;
+}
   
   $('loadTicketBtn').addEventListener('click', loadTicket);
   $('kassierenBtn').addEventListener('click', checkout);
@@ -1296,10 +1345,6 @@ $('clearCart').addEventListener('click', () => {
   resetUI();
 });
 
-// ❌ Ticket entfernen
-document.querySelector('.cart-item-remove').addEventListener('click', () => {
-  resetUI();
-});
 
 // ❌ Geld löschen
 document.querySelector('.given-clear').addEventListener('click', () => {
