@@ -532,7 +532,7 @@
     .cart-item-header {
       display: flex;
       justify-content: space-between;
-      align-items: flex-start;
+      align-items: center;
       margin-bottom: 8px;
     }
 
@@ -797,6 +797,36 @@
       border-color: #737373;
       color: #ffffff;
     }
+
+  
+    @media print {
+  body {
+    margin: 0;
+    padding: 0;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+  #printArea, #printArea * {
+    visibility: visible;
+  }
+
+  #printArea {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+  }
+
+  #printContent {
+    width: 220px;
+  }
+}
   </style>
 </head>
 <body>
@@ -1117,6 +1147,7 @@
   </footer> 
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
   <script>
   /* HIER KOMMT DER KOMPLETTE CODE REIN */
@@ -1267,8 +1298,16 @@ function calculateChange(){
   });
   
   async function checkout(){
-    if (cart.length === 0) {
-      showModal("❌ Fehler", "Kein Ticket geladen");
+    if(cart.length === 0){
+  document.getElementById('cartItems').innerHTML = '';
+
+  $('cartPositions').textContent = '';
+  $('cartQuantity').textContent = '';
+  $('cartTotal').textContent = '';
+  $('paymentAmount').textContent = '';
+
+  $('kassierenBtn').disabled = true;
+
   return;
 }
   
@@ -1293,6 +1332,8 @@ cart.forEach(ticket => {
     showModal("❌ Fehler", "Fehler beim Bezahlen");
     return;
   }
+
+  generateReceipt(ticket);
 }
   
    
@@ -1300,13 +1341,83 @@ cart.forEach(ticket => {
     $('successText').textContent =
   "Rückgeld: " + formatPrice(givenAmount - total);
 
-$('successModal').style.display = "flex";
-successSound.play();
+
 resetUI();
 $('queueInput').focus();
   
   }
   
+  function generateReceipt(ticket){
+
+const printContent = document.getElementById('printContent');
+
+const price = ticket.fields * PRICE_PER_FIELD;
+const now = new Date();
+
+// Datum formatieren
+const date = now.toLocaleDateString("de-DE");
+const time = now.toLocaleTimeString("de-DE");
+
+// 🟢 Felder anzeigen (nur Anzahl, KEINE Fragen)
+let fieldsHTML = "";
+for(let i = 1; i <= ticket.fields; i++){
+  fieldsHTML += `<div style="padding:4px 0;">Feld ${i}</div>`;
+}
+
+printContent.innerHTML = `
+ <div style="
+  width:220px;
+  font-family: monospace;
+  padding:10px;
+  background:#fff;
+  color:#000;
+  text-align:left;
+">
+    
+    <h3 style="text-align:center;">KURDISTAN QUIZ</h3>
+    <hr>
+
+    <p><b>ID:</b> ${ticket.id}</p>
+    <p><b>Queue:</b> ${ticket.queue}</p>
+    <p><b>Tag:</b> ${ticket.day}</p>
+
+    <p><b>Datum:</b> ${date}</p>
+    <p><b>Uhrzeit:</b> ${time}</p>
+
+    <hr>
+
+    <div><b>Gespielte Felder:</b></div>
+    ${fieldsHTML}
+
+    <hr>
+
+    <p><b>Preis:</b> ${formatPrice(price)}</p>
+
+    <hr>
+
+    <div id="qr" style="text-align:center;"></div>
+
+    <p style="text-align:center; font-size:10px;">
+      Scan für Prüfung
+    </p>
+
+  </div>
+`;
+
+const qrContainer = document.getElementById("qr");
+qrContainer.innerHTML = "";
+
+new QRCode(qrContainer, {
+  text: ticket.id,
+  width: 100,
+  height: 100
+});
+
+setTimeout(() => {
+  window.print();
+}, 300);
+}
+
   function resetUI(){
   cart = [];
   givenAmount = 0;
@@ -1422,6 +1533,8 @@ document.querySelector('.given-clear').addEventListener('click', () => {
     ">OK</button>
   </div>
 </div>
-
+<div id="printArea" style="font-family: monospace; color:#000;">
+  <div id="printContent"></div>
+</div>
 </body>
 </html>
