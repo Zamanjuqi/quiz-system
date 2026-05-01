@@ -1,0 +1,1382 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kurdistan Kasse</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #0a0a0a;
+      color: #ffffff;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ==================== HEADER ==================== */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background-color: #141414;
+      padding: 0 16px;
+      height: 56px;
+      border-bottom: 1px solid #262626;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo-icon {
+      width: 32px;
+      height: 32px;
+      background-color: #c8ff00;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      color: #000;
+      font-size: 14px;
+    }
+
+    .logo-text {
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .logo-text span {
+      color: #c8ff00;
+    }
+
+    .nav-tabs {
+      display: flex;
+      gap: 8px;
+    }
+
+    .nav-tab {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      color: #a3a3a3;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .nav-tab:hover {
+      color: #ffffff;
+      background-color: #262626;
+    }
+
+    .nav-tab.active {
+      background-color: #c8ff00;
+      color: #000000;
+    }
+
+    .nav-tab i {
+      font-size: 14px;
+    }
+
+    .header-right {
+      text-align: right;
+    }
+
+    .clock-time {
+      font-size: 24px;
+      font-weight: 600;
+      color: #c8ff00;
+    }
+
+    .clock-date {
+      font-size: 12px;
+      color: #737373;
+    }
+
+    /* ==================== MAIN LAYOUT ==================== */
+    .main-wrapper {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ==================== SIDEBAR ==================== */
+    .sidebar {
+      width: 72px;
+      background-color: #141414;
+      border-right: 1px solid #262626;
+      display: flex;
+      flex-direction: column;
+      padding: 16px 0;
+    }
+
+    .sidebar-nav {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      flex: 1;
+    }
+
+    .sidebar-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding: 12px 8px;
+      color: #737373;
+      text-decoration: none;
+      font-size: 10px;
+      transition: all 0.2s;
+      cursor: pointer;
+    }
+
+    .sidebar-item:hover {
+      color: #ffffff;
+    }
+
+    .sidebar-item.active {
+      color: #c8ff00;
+    }
+
+    .sidebar-item i {
+      font-size: 20px;
+    }
+
+    .sidebar-bottom {
+      margin-top: auto;
+      padding-top: 16px;
+      border-top: 1px solid #262626;
+    }
+
+    /* ==================== CONTENT AREA ==================== */
+    .content-area {
+      flex: 1;
+      padding: 24px;
+      overflow-y: auto;
+      background-color: #0a0a0a;
+    }
+
+    .page-title {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 20px;
+    }
+
+    /* Product Section */
+    .product-section {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .product-card {
+      background-color: #141414;
+      border: 1px solid #262626;
+      border-radius: 12px;
+      padding: 24px;
+      min-width: 200px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+
+    .product-icon {
+      width: 100px;
+      height: 100px;
+      border: 3px solid #c8ff00;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+    }
+
+    .product-icon i {
+      font-size: 40px;
+      color: #c8ff00;
+    }
+
+    .product-name {
+      font-size: 18px;
+      font-weight: 700;
+      color: #c8ff00;
+      margin-bottom: 4px;
+    }
+
+    .product-subtitle {
+      font-size: 12px;
+      color: #737373;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .info-cards {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .info-card {
+      background-color: #141414;
+      border: 1px solid #262626;
+      border-radius: 8px;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .info-card-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+    }
+
+    .info-card-icon.clock {
+      background-color: rgba(200, 255, 0, 0.1);
+      color: #c8ff00;
+    }
+
+    .info-card-icon.gift {
+      background-color: rgba(168, 85, 247, 0.1);
+      color: #a855f7;
+    }
+
+    .info-card-icon.check {
+      background-color: rgba(34, 197, 94, 0.1);
+      color: #22c55e;
+    }
+
+    .info-card-icon.lock {
+      background-color: rgba(251, 191, 36, 0.1);
+      color: #fbbf24;
+    }
+
+    .info-card-content h4 {
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 2px;
+    }
+
+    .info-card-content p {
+      font-size: 11px;
+      color: #737373;
+    }
+
+    /* Stats Section */
+    .stats-section {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .stat-card {
+      background-color: #141414;
+      border: 1px solid #262626;
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+    }
+
+    .stat-card-icon {
+      width: 40px;
+      height: 40px;
+      margin: 0 auto 12px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+
+    .stat-card-icon.price {
+      background-color: rgba(200, 255, 0, 0.1);
+      color: #c8ff00;
+    }
+
+    .stat-card-icon.calendar {
+      background-color: rgba(96, 165, 250, 0.1);
+      color: #60a5fa;
+    }
+
+    .stat-card-icon.trophy {
+      background-color: rgba(251, 191, 36, 0.1);
+      color: #fbbf24;
+    }
+
+    .stat-card h3 {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .stat-card p {
+      font-size: 12px;
+      color: #737373;
+    }
+
+    /* Quick Functions */
+    .section-title {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: #a3a3a3;
+    }
+
+    .quick-functions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+    }
+
+    .quick-btn {
+      background-color: #141414;
+      border: 1px solid #262626;
+      border-radius: 8px;
+      padding: 16px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+      min-width: 100px;
+    }
+
+    .quick-btn:hover {
+      border-color: #c8ff00;
+      background-color: #1a1a1a;
+    }
+
+    .quick-btn i {
+      font-size: 20px;
+      color: #737373;
+    }
+
+    .quick-btn span {
+      font-size: 11px;
+      color: #a3a3a3;
+    }
+
+    /* Daily Overview */
+    .daily-overview {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+
+    .overview-card {
+      background-color: #141414;
+      border: 1px solid #262626;
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .overview-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+
+    .overview-icon.revenue {
+      background-color: rgba(251, 146, 60, 0.1);
+      color: #fb923c;
+    }
+
+    .overview-icon.tickets {
+      background-color: rgba(96, 165, 250, 0.1);
+      color: #60a5fa;
+    }
+
+    .overview-icon.customers {
+      background-color: rgba(168, 85, 247, 0.1);
+      color: #a855f7;
+    }
+
+    .overview-icon.winners {
+      background-color: rgba(251, 191, 36, 0.1);
+      color: #fbbf24;
+    }
+
+    .overview-content h3 {
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .overview-content p {
+      font-size: 11px;
+      color: #737373;
+    }
+
+    /* ==================== RIGHT PANEL (KASSE) ==================== */
+    .kasse-panel {
+      width: 280px;
+      background-color: #141414;
+      border-left: 1px solid #262626;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .kasse-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px;
+      border-bottom: 1px solid #262626;
+    }
+
+    .kasse-header h2 {
+      font-size: 14px;
+      font-weight: 600;
+      color: #c8ff00;
+    }
+
+    .kasse-header button {
+      background: none;
+      border: none;
+      color: #737373;
+      cursor: pointer;
+      font-size: 16px;
+    }
+
+    .kasse-content {
+      flex: 1;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      overflow-y: auto;
+    }
+
+    /* Queue Input */
+    .queue-input-wrapper {
+      display: flex;
+      gap: 8px;
+    }
+
+    .queue-input-wrapper input {
+      flex: 1;
+      background-color: #262626;
+      border: 1px solid #404040;
+      border-radius: 6px;
+      padding: 10px 12px;
+      color: #ffffff;
+      font-size: 13px;
+    }
+
+    .queue-input-wrapper input::placeholder {
+      color: #737373;
+    }
+
+    .queue-input-wrapper button {
+      background-color: #262626;
+      border: 1px solid #404040;
+      border-radius: 6px;
+      padding: 10px 12px;
+      color: #a3a3a3;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .queue-input-wrapper button:hover {
+      border-color: #c8ff00;
+      color: #c8ff00;
+    }
+
+    /* Cart Item */
+    .cart-item {
+      background-color: #1a1a1a;
+      border: 1px solid #262626;
+      border-radius: 8px;
+      padding: 12px;
+    }
+
+    .cart-item-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 8px;
+    }
+
+    .cart-item-name {
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .cart-item-details {
+      font-size: 11px;
+      color: #737373;
+    }
+
+    .cart-item-price {
+      font-size: 14px;
+      font-weight: 600;
+      color: #c8ff00;
+    }
+
+    .cart-item-remove {
+      background: none;
+      border: none;
+      color: #737373;
+      cursor: pointer;
+      font-size: 14px;
+      margin-left: 8px;
+    }
+
+    /* Summary */
+    .summary-section {
+      border-top: 1px solid #262626;
+      padding-top: 12px;
+    }
+
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: #737373;
+      margin-bottom: 8px;
+    }
+
+    .summary-row.total {
+      font-size: 14px;
+      font-weight: 600;
+      color: #ffffff;
+    }
+
+    .summary-row.total span:last-child {
+      color: #c8ff00;
+    }
+
+    /* Payment Section */
+    .payment-section {
+      border-top: 1px solid #262626;
+      padding-top: 16px;
+    }
+
+    .payment-label {
+      font-size: 12px;
+      color: #737373;
+      margin-bottom: 8px;
+    }
+
+    .payment-amount {
+      font-size: 20px;
+      font-weight: 700;
+      color: #c8ff00;
+      margin-bottom: 12px;
+    }
+
+    .quick-amounts {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .quick-amount-btn {
+      flex: 1;
+      background-color: #262626;
+      border: 1px solid #404040;
+      border-radius: 6px;
+      padding: 8px;
+      color: #a3a3a3;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .quick-amount-btn:hover {
+      border-color: #c8ff00;
+      color: #c8ff00;
+    }
+
+    .given-section {
+      margin-bottom: 12px;
+    }
+
+    .given-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .given-row span:first-child {
+      font-size: 12px;
+      color: #737373;
+    }
+
+    .given-input-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .given-input {
+      background-color: #262626;
+      border: 1px solid #404040;
+      border-radius: 6px;
+      padding: 8px 12px;
+      color: #ffffff;
+      font-size: 13px;
+      width: 100px;
+      text-align: right;
+    }
+
+    .given-clear {
+      background: none;
+      border: none;
+      color: #737373;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .change-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+    }
+
+    .change-row span:first-child {
+      color: #737373;
+    }
+
+    .change-row span:last-child {
+      color: #c8ff00;
+      font-weight: 600;
+    }
+
+    /* Kassieren Button */
+    .kassieren-btn {
+      background-color: #dc2626;
+      border: none;
+      border-radius: 8px;
+      padding: 16px;
+      color: #ffffff;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s;
+      margin-top: auto;
+    }
+
+    .kassieren-btn:hover {
+      background-color: #b91c1c;
+    }
+
+    /* ==================== FOOTER ==================== */
+    .footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background-color: #141414;
+      padding: 12px 16px;
+      border-top: 1px solid #262626;
+    }
+
+    .footer-left {
+      display: flex;
+      gap: 12px;
+    }
+
+    .footer-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .footer-btn.cancel {
+      background-color: #dc2626;
+      border: none;
+      color: #ffffff;
+    }
+
+    .footer-btn.cancel:hover {
+      background-color: #b91c1c;
+    }
+
+    .footer-btn.help {
+      background-color: #262626;
+      border: 1px solid #404040;
+      color: #a3a3a3;
+    }
+
+    .footer-btn.help:hover {
+      border-color: #737373;
+      color: #ffffff;
+    }
+
+    .footer-right {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .status-indicator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: #737373;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      background-color: #22c55e;
+      border-radius: 50%;
+    }
+
+    .version-info {
+      font-size: 11px;
+      color: #525252;
+    }
+
+    .drawer-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background-color: #262626;
+      border: 1px solid #404040;
+      border-radius: 6px;
+      padding: 8px 12px;
+      color: #a3a3a3;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .drawer-btn:hover {
+      border-color: #737373;
+      color: #ffffff;
+    }
+  </style>
+</head>
+<body>
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header-left">
+      <div class="logo">
+        <div class="logo-icon">Q</div>
+        <div class="logo-text"><span>KURDISTAN</span> Kasse</div>
+      </div>
+      <nav class="nav-tabs">
+        <button class="nav-tab active">
+          <i class="fas fa-qrcode"></i>
+          SCANNEN
+        </button>
+        <button class="nav-tab">
+          <i class="fas fa-shopping-cart"></i>
+          VERKAUFEN
+        </button>
+        <button class="nav-tab">
+          <i class="fas fa-chart-bar"></i>
+          UMSATZ
+        </button>
+        <button class="nav-tab">
+          <i class="fas fa-cog"></i>
+          EINSTELLUNGEN
+        </button>
+      </nav>
+    </div>
+    <div class="header-right">
+      <div class="clock-time" id="clockTime">17:08:49</div>
+      <div class="clock-date" id="clockDate">29.04.2026</div>
+    </div>
+  </header>
+
+  <!-- MAIN WRAPPER -->
+  <div class="main-wrapper">
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <nav class="sidebar-nav">
+        <a class="sidebar-item active">
+          <i class="fas fa-home"></i>
+          <span>Startseite</span>
+        </a>
+        <a class="sidebar-item">
+          <i class="fas fa-gamepad"></i>
+          <span>Spiele</span>
+        </a>
+        <a class="sidebar-item">
+          <i class="fas fa-tags"></i>
+          <span>Aktionen</span>
+        </a>
+        <a class="sidebar-item">
+          <i class="fas fa-receipt"></i>
+          <span>Quittungen</span>
+        </a>
+        <a class="sidebar-item">
+          <i class="fas fa-chart-line"></i>
+          <span>Berichte</span>
+        </a>
+        <a class="sidebar-item">
+          <i class="fas fa-users"></i>
+          <span>Kunden</span>
+        </a>
+      </nav>
+      <div class="sidebar-bottom">
+        <a class="sidebar-item">
+          <i class="fas fa-ellipsis-h"></i>
+          <span>Mehr</span>
+        </a>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="content-area">
+      <h1 class="page-title">Kurdistan Quiz</h1>
+
+      <!-- Product Section -->
+      <div class="product-section">
+        <div class="product-card">
+          <div class="product-icon">
+            <i class="fas fa-question"></i>
+          </div>
+          <div class="product-name">KURDISTAN</div>
+          <div class="product-name">QUIZ</div>
+          <div class="product-subtitle">Prediction Game</div>
+        </div>
+
+        <div class="info-cards">
+          <div class="info-card">
+            <div class="info-card-icon clock">
+              <i class="fas fa-clock"></i>
+            </div>
+            <div class="info-card-content">
+              <h4>Ziehung zweimal pro Woche</h4>
+              <p>Mittwoch & Samstag um 22:00 Uhr</p>
+            </div>
+          </div>
+          <div class="info-card">
+            <div class="info-card-icon gift">
+              <i class="fas fa-gift"></i>
+            </div>
+            <div class="info-card-content">
+              <h4>Richtige Vorhersagen gewinnen</h4>
+              <p>Je mehr richtig, desto höher der Gewinn</p>
+            </div>
+          </div>
+          <div class="info-card">
+            <div class="info-card-icon check">
+              <i class="fas fa-check"></i>
+            </div>
+            <div class="info-card-content">
+              <h4>Sicher & Fair</h4>
+              <p>Zertifiziertes und faires System</p>
+            </div>
+          </div>
+          <div class="info-card">
+            <div class="info-card-icon lock">
+              <i class="fas fa-lock"></i>
+            </div>
+            <div class="info-card-content">
+              <h4>Deine Daten sind sicher</h4>
+              <p>Verschlüsselt & geschützt</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats Section -->
+      <div class="stats-section">
+        <div class="stat-card">
+          <div class="stat-card-icon price">
+            <i class="fas fa-ticket-alt"></i>
+          </div>
+          <h3>2.500 IQD</h3>
+          <p>Preis pro Feld</p>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-icon calendar">
+            <i class="fas fa-calendar-alt"></i>
+          </div>
+          <h3>2x pro Woche</h3>
+          <p>Mittwoch & Samstag</p>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-icon trophy">
+            <i class="fas fa-trophy"></i>
+          </div>
+          <h3>Hohe Gewinne</h3>
+          <p>Bis zu Millionen IQD</p>
+        </div>
+      </div>
+
+      <!-- Quick Functions -->
+      <h3 class="section-title">Schnellfunktionen</h3>
+      <div class="quick-functions">
+        <button class="quick-btn">
+          <i class="fas fa-upload"></i>
+          <span>Dauerschein erstellen</span>
+        </button>
+        <button class="quick-btn">
+          <i class="fas fa-search"></i>
+          <span>Kunde suchen</span>
+        </button>
+        <button class="quick-btn">
+          <i class="fas fa-file-alt"></i>
+          <span>Ticket prüfen</span>
+        </button>
+        <button class="quick-btn">
+          <i class="fas fa-bullseye"></i>
+          <span>Aktion anwenden</span>
+        </button>
+        <button class="quick-btn">
+          <i class="fas fa-print"></i>
+          <span>Drucken testen</span>
+        </button>
+        <button class="quick-btn">
+          <i class="fas fa-calculator"></i>
+          <span>Rechner</span>
+        </button>
+      </div>
+
+      <!-- Daily Overview -->
+      <h3 class="section-title">Tagesübersicht</h3>
+      <div class="daily-overview">
+        <div class="overview-card">
+          <div class="overview-icon revenue">
+            <i class="fas fa-coins"></i>
+          </div>
+          <div class="overview-content">
+            <h3>1.252.500</h3>
+            <p>Umsatz heute (IQD)</p>
+          </div>
+        </div>
+        <div class="overview-card">
+          <div class="overview-icon tickets">
+            <i class="fas fa-ticket-alt"></i>
+          </div>
+          <div class="overview-content">
+            <h3>483</h3>
+            <p>Tickets verkauft</p>
+          </div>
+        </div>
+        <div class="overview-card">
+          <div class="overview-icon customers">
+            <i class="fas fa-user-friends"></i>
+          </div>
+          <div class="overview-content">
+            <h3>157</h3>
+            <p>Kunden heute</p>
+          </div>
+        </div>
+        <div class="overview-card">
+          <div class="overview-icon winners">
+            <i class="fas fa-trophy"></i>
+          </div>
+          <div class="overview-content">
+            <h3>18</h3>
+            <p>Gewinner heute</p>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- RIGHT PANEL (KASSE) -->
+    <aside class="kasse-panel">
+      <div class="kasse-header">
+        <h2>KASSENINHALT</h2>
+        <button id="clearCart"><i class="fas fa-trash"></i></button>
+      </div>
+
+      <div class="kasse-content">
+        <!-- Queue Input -->
+        <div class="queue-input-wrapper">
+          <input type="text" id="queueInput" placeholder="Queue eingeben...">
+          <button id="loadTicketBtn"><i class="fas fa-search"></i></button>
+        </div>
+
+        <!-- Cart Item -->
+        <div class="cart-item" id="cartItem">
+          <div class="cart-item-header">
+            <div>
+              <div class="cart-item-name">Kurdistan Quiz</div>
+              <div class="cart-item-details" id="cartQueue">Queue: -</div>
+              <div class="cart-item-details"><span id="cartDay"></span></div>
+              <div class="cart-item-details"><span id="cartFields"></span></div>
+            </div>
+            <div style="display: flex; align-items: center;">
+              <span class="cart-item-price" id="cartPrice"></span>
+              <button class="cart-item-remove"><i class="fas fa-times"></i></button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Summary -->
+        <div class="summary-section">
+          <div class="summary-row">
+            <span>Anzahl Positionen</span>
+            <span id="cartPositions"></span>
+          </div>
+          <div class="summary-row">
+            <span>Gesamtmenge</span>
+            <span id="cartQuantity"></span>
+          </div>
+          <div class="summary-row total">
+            <span>Summe</span>
+            <span id="cartTotal"></span>
+          </div>
+        </div>
+
+        <!-- Payment Section -->
+        <div class="payment-section" id="paymentSection">
+          <div class="payment-label">Zahlbetrag</div>
+          <div class="payment-amount" id="paymentAmount"></div>
+
+          <div class="quick-amounts">
+            <button class="quick-amount-btn">5.000</button>
+            <button class="quick-amount-btn">10.000</button>
+            <button class="quick-amount-btn">20.000</button>
+            <button class="quick-amount-btn">50.000</button>
+          </div>
+
+          <div class="given-section">
+            <div class="given-row">
+              <span>Gegeben</span>
+              <div class="given-input-wrapper">
+                <input type="text" class="given-input" id="givenAmount" placeholder="0 IQD">
+                <button class="given-clear"><i class="fas fa-times"></i></button>
+              </div>
+            </div>
+            <div class="change-row">
+              <span>Rückgeld</span>
+              <span id="changeAmount">0 IQD</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Kassieren Button -->
+        <button class="kassieren-btn" id="kassierenBtn" disabled>
+          <i class="fas fa-print"></i>
+          KASSIEREN
+        </button>
+      </div>
+    </aside>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="footer-left">
+      <button class="footer-btn cancel" id="cancelBtn">
+        <i class="fas fa-times"></i>
+        ABBRECHEN
+      </button>
+      <button class="footer-btn help" id="helpBtn">
+        <i class="fas fa-question-circle"></i>
+        HILFE
+      </button>
+    </div>
+    <div class="footer-right">
+      <div class="status-indicator">
+        <span class="status-dot" id="statusDot"></span>
+        <span id="statusText">Online</span>
+      </div>
+      <div class="version-info">KQ-T001 V1.0.0</div>
+      <button class="drawer-btn" id="openDrawerBtn">
+        <i class="fas fa-lock"></i>
+        Kasse öffnen
+      </button>
+    </div>
+  </footer> 
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <script>
+  /* HIER KOMMT DER KOMPLETTE CODE REIN */
+  
+  const SUPABASE_URL = "https://oinnxzalelhafopsgone.supabase.co";
+  const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9pbm54emFsZWxoYWZvcHNnb25lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MDA4MDIsImV4cCI6MjA5MjM3NjgwMn0.EmAIQ76SUzHG84WPtHHDqn_ilLuakM4xUK0L2i1ptSY";
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  
+  const PRICE_PER_FIELD = 2500;
+  const LOCK_TIMEOUT_MS = 2 * 60 * 1000; // 2 Minuten
+  const successSound = new Audio("https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3");
+  
+  
+  let currentTicket = null;
+  let givenAmount = 0;
+  
+  const $ = (id) => document.getElementById(id);
+  function showModal(title, text) {
+  $('modalTitle').textContent = title;
+  $('modalText').textContent = text;
+  $('modal').style.display = "flex";
+}
+  
+  function formatPrice(n){
+    return n.toLocaleString('de-DE') + ' IQD';
+  }
+  
+  async function loadTicket() {
+  const queue = parseInt($('queueInput').value);
+
+  if (!queue || queue < 1 || queue > 10) {
+    showModal("⚠️ Eingabe", "Queue muss 1–10 sein");
+    return;
+  }
+
+  const now = new Date();
+
+  const { data, error } = await sb
+  .from("tickets")
+  .select("*")
+  .eq("queue", queue)
+  .eq("status", "unpaid")
+  .limit(1);
+
+  if (error) {
+    console.error(error);
+    showModal("❌ Fehler", "DB Fehler");
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    showModal("❌ Fehler", "Kein Ticket gefunden");
+    return;
+  }
+
+  currentTicket = data[0];
+
+  
+
+  const price = currentTicket.fields * PRICE_PER_FIELD;
+
+  $('cartQueue').textContent = "Queue: " + currentTicket.queue;
+  $('cartDay').textContent = currentTicket.day;
+  $('cartFields').textContent = currentTicket.fields + " Feld";
+  $('cartPrice').textContent = formatPrice(price);
+
+  $('cartPositions').textContent = "1";
+  $('cartQuantity').textContent = currentTicket.fields + " Feld";
+  $('cartTotal').textContent = formatPrice(price);
+  $('paymentAmount').textContent = formatPrice(price);
+  $('kassierenBtn').disabled = false;
+}
+  
+  
+  function calculateChange(){
+    if(!currentTicket) return;
+  
+    const price = currentTicket.fields * PRICE_PER_FIELD;
+    const change = Math.max(0, givenAmount - price);
+  
+    $('changeAmount').textContent = formatPrice(change);
+  }
+  
+  $('givenAmount').addEventListener('input', (e)=>{
+    givenAmount = parseInt(e.target.value.replace(/\D/g,'')) || 0;
+    calculateChange();
+  });
+  
+  document.querySelectorAll('.quick-amount-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const val = parseInt(btn.textContent.replace(/\D/g,''));
+      givenAmount = val;
+      $('givenAmount').value = val + " IQD";
+      calculateChange();
+    });
+  });
+  
+  async function checkout(){
+    if (!currentTicket) {
+      showModal("❌ Fehler", "Kein Ticket geladen");
+  return;
+}
+  
+    const price = currentTicket.fields * PRICE_PER_FIELD;
+  
+    if(givenAmount < price){
+      showModal("⚠️ Zu wenig Geld", "Bitte mehr eingeben");
+      return;
+    }
+  
+    const { error } = await sb
+  .from("tickets")
+  .update({
+    status: "paid",
+  })
+  .eq("id", currentTicket.id);
+  
+    if(error){
+      showModal("❌ Fehler", "Fehler beim Bezahlen");
+      return;
+    }
+  
+
+    $('successText').textContent =
+  "Rückgeld: " + formatPrice(givenAmount - price);
+
+$('successModal').style.display = "flex";
+successSound.play();
+resetUI();
+$('queueInput').focus();
+  
+  }
+  
+  function resetUI(){
+    currentTicket = null;
+    givenAmount = 0;
+  
+    $('queueInput').value = '';
+    $('givenAmount').value = '';
+    $('changeAmount').textContent = '';
+  
+    [
+      'cartQueue','cartDay','cartFields','cartPrice',
+      'cartPositions','cartQuantity','cartTotal','paymentAmount'
+    ].forEach(id => $(id).textContent = '');
+    $('kassierenBtn').disabled = true;
+  }
+  
+  $('loadTicketBtn').addEventListener('click', loadTicket);
+  $('kassierenBtn').addEventListener('click', checkout);
+  $('cancelBtn').addEventListener('click', resetUI);
+  
+  document.addEventListener('DOMContentLoaded', () => {
+
+$('closeSuccess').addEventListener('click', () => {
+  $('successModal').style.display = "none";
+});
+
+$('modalBtn').addEventListener('click', () => {
+  $('modal').style.display = "none";
+});
+
+// 🧹 Mülltonne
+$('clearCart').addEventListener('click', () => {
+  resetUI();
+});
+
+// ❌ Ticket entfernen
+document.querySelector('.cart-item-remove').addEventListener('click', () => {
+  resetUI();
+});
+
+// ❌ Geld löschen
+document.querySelector('.given-clear').addEventListener('click', () => {
+  givenAmount = 0;
+  $('givenAmount').value = '';
+  $('changeAmount').textContent = '0 IQD';
+});
+
+});
+  </script>
+ <div id="modal" style="
+ display:none;
+ position:fixed;
+ top:0;
+ left:0;
+ width:100%;
+ height:100%;
+ background:rgba(0,0,0,0.6);
+ justify-content:center;
+ align-items:center;
+ z-index:9999;
+">
+ <div style="
+   background:#141414;
+   padding:30px;
+   border-radius:12px;
+   text-align:center;
+   min-width:280px;
+ ">
+   <h2 id="modalTitle" style="color:#c8ff00;">Info</h2>
+   <p id="modalText" style="margin-top:10px;"></p>
+   <button id="modalBtn" style="
+     margin-top:20px;
+     padding:10px 20px;
+     border:none;
+     border-radius:8px;
+     background:#c8ff00;
+     color:#000;
+     font-weight:600;
+     cursor:pointer;
+   ">OK</button>
+ </div>
+</div>
+
+ <div id="successModal" style="
+  display:none;
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  background:rgba(0,0,0,0.6);
+  justify-content:center;
+  align-items:center;
+  z-index:9999;
+">
+  <div style="
+    background:#141414;
+    padding:30px;
+    border-radius:12px;
+    text-align:center;
+    min-width:280px;
+  ">
+    <h2 style="color:#22c55e;">✔ Bezahlt</h2>
+    <p id="successText" style="margin-top:10px;"></p>
+    <button id="closeSuccess" style="
+      margin-top:20px;
+      padding:10px 20px;
+      border:none;
+      border-radius:8px;
+      background:#c8ff00;
+      color:#000;
+      font-weight:600;
+      cursor:pointer;
+    ">OK</button>
+  </div>
+</div>
+
+</body>
+</html>

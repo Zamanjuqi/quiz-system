@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kasse – Ticket prüfen</title>
+
+<style>
+body {
+  margin:0;
+  font-family:-apple-system,Arial;
+  background:#f4f4f4;
+}
+
+.header {
+  background:#0b0f1a;
+  color:white;
+  padding:15px;
+  text-align:center;
+  font-weight:bold;
+}
+
+.box {
+  margin:20px;
+  background:white;
+  border-radius:20px;
+  padding:20px;
+  text-align:center;
+}
+
+.status {
+  font-size:20px;
+  font-weight:bold;
+  margin-top:10px;
+}
+
+.valid { color:green; }
+.invalid { color:red; }
+
+.info {
+  margin-top:10px;
+  font-size:14px;
+  color:#666;
+}
+</style>
+</head>
+
+<body>
+
+<div class="header">
+KASSE – TICKET PRÜFEN
+</div>
+
+<div class="box">
+<h2>Ticketprüfung</h2>
+
+<div id="ticketInfo"></div>
+<div id="status" class="status"></div>
+<div id="extra" class="info"></div>
+
+</div>
+
+<script>
+
+// URL Parameter lesen
+function getParam(name){
+let url=new URL(window.location.href);
+return url.searchParams.get(name);
+}
+
+let id=getParam("id");
+let time=getParam("t");
+let hash=getParam("h");
+
+// Hash prüfen (gleiche Logik wie index)
+function createHash(id,time){
+return btoa(id+"-"+time);
+}
+
+// Anzeige
+let infoDiv=document.getElementById("ticketInfo");
+let statusDiv=document.getElementById("status");
+let extraDiv=document.getElementById("extra");
+
+if(!id || !time || !hash){
+statusDiv.innerText="Ungültiges Ticket";
+statusDiv.className="status invalid";
+}else{
+
+let expectedHash=createHash(id,time);
+
+infoDiv.innerHTML=
+"<p><b>ID:</b> "+id+"</p>"+
+"<p><b>Zeit:</b> "+new Date(Number(time)).toLocaleString()+"</p>";
+
+if(hash!==expectedHash){
+statusDiv.innerText="Ticket manipuliert!";
+statusDiv.className="status invalid";
+}else{
+
+statusDiv.innerText="Ticket gültig";
+statusDiv.className="status valid";
+
+// Ziehung prüfen
+let now=new Date();
+let drawDate=new Date(Number(time));
+
+// einfache Logik: 1 Tag später gültig
+let diff=(now-drawDate)/1000/60/60;
+
+if(diff<24){
+extraDiv.innerText="Ziehung noch nicht erfolgt";
+}else{
+extraDiv.innerText="Ziehung erfolgt – Ergebnis prüfen (Backend nötig)";
+}
+
+}
+}
+
+</script>
+
+</body>
+</html>
