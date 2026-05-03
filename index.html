@@ -401,38 +401,62 @@
     let timeLeft = 50;
     let questions = [];
     let timerInterval = null;
+    let playerAnswers = [];
+    let allAnswers = [];
 
     const ALL_QUESTIONS = [
-      { q: "⚽ Wie viele Tore fallen heute?", a: ["0-1", "2-3", "4+"] },
-      { q: "🌧️ Wird es morgen regnen?", a: ["Ja", "Nein"] },
-      { q: "💰 Steigt Goldpreis?", a: ["Ja", "Nein"] },
-      { q: "⚽ Heimteam gewinnt?", a: ["Ja", "Nein"] },
-      { q: "🌡️ Über 25°C?", a: ["Ja", "Nein"] },
-      { q: "📈 Bitcoin steigt?", a: ["Ja", "Nein"] },
-      { q: "⚽ Rote Karte?", a: ["Ja", "Nein"] },
-      { q: "🌧️ Mehr als 5mm Regen?", a: ["Ja", "Nein"] },
-    ];
+  { q: "⚽ Wie viele Tore fallen heute?", type: "input" },
+  { q: "🌧️ Wird es morgen regnen?", type: "choice", a: ["Ja", "Nein"] },
+  { q: "💰 Steigt Goldpreis?", type: "choice", a: ["Ja", "Nein"] },
+  { q: "⚽ Heimteam gewinnt?", type: "choice", a: ["Ja", "Nein"] },
+  { q: "🌡️ Temperatur morgen (°C)?", type: "input" },
+  { q: "📈 Bitcoin Preis morgen?", type: "input" }
+];
 
-    // ===== UTILITY FUNCTIONS =====
-    function getAvailableDay() {
-      const now = new Date();
-      const day = now.getDay();
-      const hour = now.getHours();
-      if (day === 6 && hour >= 22) return "Mittwoch";
-      if (day === 0 || day === 1 || day === 2) return "Mittwoch";
-      if (day === 3 && hour < 22) return "Mittwoch";
-      if (day === 3 && hour >= 22) return "Samstag";
-      return "Samstag";
-    }
+function getAvailableDay() {
+  const now = new Date();
+  const day = now.getDay(); // 0=So, 1=Mo, ..., 6=Sa
+  const hour = now.getHours();
+
+  // Mittwoch bis 22 Uhr → Mittwoch
+  if (day < 3) return "Mittwoch"; // So, Mo, Di
+  if (day === 3 && hour < 22) return "Mittwoch";
+
+  // Nach Mittwoch 22 Uhr → Samstag
+  if (day === 3 && hour >= 22) return "Samstag";
+  if (day === 4 || day === 5) return "Samstag"; // Do, Fr
+  if (day === 6 && hour < 22) return "Samstag";
+
+  // Nach Samstag 22 Uhr → wieder Mittwoch
+  return "Mittwoch";
+}
+
+function getNextDrawDate(dayName) {
+  const now = new Date();
+  const targetDay = dayName === "Mittwoch" ? 3 : 6; // 3=Mi, 6=Sa
+
+  const date = new Date(now);
+  
+  while (date.getDay() !== targetDay || date <= now) {
+    date.setDate(date.getDate() + 1);
+  }
+
+  const formatted = date.toLocaleDateString('de-DE', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  });
+
+  return `${dayName}, ${formatted}`;
+}
 
     function formatPrice(price) {
       return price.toLocaleString('de-DE') + ' Dinar';
     }
 
-    function generateQuestions() {
-      const shuffled = [...ALL_QUESTIONS].sort(() => 0.5 - Math.random());
-      return shuffled.slice(0, 6);
-    }
+      function generateQuestions() {
+  return [...ALL_QUESTIONS];
+}
 
     function generateDraws(day) {
       const draws = [];
@@ -495,6 +519,9 @@
 
     // ===== QUIZ SCREEN =====
     function startQuiz() {
+  playerAnswers = [];
+  allAnswers = []; // 🔥 DAS HIER HINZUFÜGEN
+
       currentField = 0;
       currentQuestion = 0;
       timeLeft = 50;
@@ -515,13 +542,47 @@
       
       const container = document.getElementById('answersContainer');
       container.innerHTML = '';
-      q.a.forEach(answer => {
-        const btn = document.createElement('button');
-        btn.className = 'answer-btn';
-        btn.textContent = answer;
-        btn.onclick = nextQuestion;
-        container.appendChild(btn);
-      });
+      // 👉 WENN INPUT
+if (q.type === "input") {
+
+const input = document.createElement('input');
+input.type = 'text';
+input.placeholder = 'Antwort eingeben...';
+input.style.padding = '16px';
+input.style.borderRadius = '12px';
+input.style.border = '2px solid #ccc';
+input.style.fontSize = '18px';
+input.style.width = '100%';
+
+const btn = document.createElement('button');
+btn.className = 'answer-btn';
+btn.textContent = 'Weiter';
+
+btn.onclick = () => {
+  if (!input.value.trim()) return;
+
+  playerAnswers.push(input.value.trim()); // 🔥 SPEICHERN
+  nextQuestion();
+};
+
+container.appendChild(input);
+container.appendChild(btn);
+
+// 👉 WENN BUTTONS
+} else if (q.type === "choice") {
+
+q.a.forEach(answer => {
+  const btn = document.createElement('button');
+  btn.className = 'answer-btn';
+  btn.textContent = answer;
+  btn.onclick = () => {
+  playerAnswers.push(answer);
+  nextQuestion();
+};
+  container.appendChild(btn);
+});
+
+}
 
       // Field dots
       const dotsContainer = document.getElementById('fieldDots');
@@ -547,23 +608,33 @@
     }
 
     function nextQuestion() {
-      if (currentQuestion < 5) {
-        currentQuestion++;
-        timeLeft = 50;
-        renderQuiz();
-      } else {
-        if (currentField < totalFields - 1) {
-          currentField++;
-          currentQuestion = 0;
-          timeLeft = 50;
-          questions = generateQuestions();
-          renderQuiz();
-        } else {
-          if (timerInterval) clearInterval(timerInterval);
-          showResult();
-        }
-      }
+  if (currentQuestion < 5) {
+    currentQuestion++;
+    timeLeft = 50;
+    renderQuiz();
+  } else {
+
+    if (currentField < totalFields - 1) {
+
+      allAnswers.push([...playerAnswers]); // 🔥 Feld speichern
+      playerAnswers = []; // 🔥 reset
+
+      currentField++;
+      currentQuestion = 0;
+      timeLeft = 50;
+      renderQuiz();
+
+    } else {
+
+      if (playerAnswers.length > 0) {
+  allAnswers.push([...playerAnswers]);
+}
+
+      if (timerInterval) clearInterval(timerInterval);
+      showResult();
     }
+  }
+}
 
 
     function newGame() {
@@ -582,7 +653,10 @@
       const minutes = now.getMinutes();
       const seconds = now.getSeconds();
 
-      document.getElementById('availableDay').textContent = getAvailableDay() + ', 22:00 Uhr';
+      const day = getAvailableDay();
+const drawDate = getNextDrawDate(day);
+
+document.getElementById('availableDay').textContent = drawDate + ' - 22:00 Uhr';
 
       const isLastHour = hour === 21;
       const countdownBox = document.getElementById('countdownBox');
@@ -647,11 +721,12 @@ if (!queueNumber) {
   alert("Alle Plätze (1–10) sind gerade belegt. Bitte warten.");
   return;
 }
-  const ticket = {
+const ticket = {
   fields: totalFields,
   day: selectedDay,
   status: "unpaid",
-  queue: queueNumber,   // 🔥 DAS FEHLT BEI DIR
+  queue: queueNumber,
+  answers: allAnswers.flat(),   // 🔥 HIER HINZUFÜGEN
   created_at: new Date().toISOString()
 };
 
@@ -677,7 +752,7 @@ if(!savedTicket.queue){
 }
 
 document.getElementById('resultQueueNumber').textContent = String(savedTicket.queue);
-document.getElementById('resultDay').textContent = selectedDay;
+document.getElementById('resultDay').textContent = getNextDrawDate(selectedDay);
 document.getElementById('resultFields').textContent = totalFields;
 document.getElementById('resultPrice').textContent = formatPrice(price);
 
@@ -698,6 +773,60 @@ setTimeout(() => {
   newGame();
 }, 5000);
 }
+
+async function checkResults() {
+
+const { data: results } = await sb
+  .from("draw_results")
+  .select("*");
+
+console.log("RESULTS:", results);
+
+const { data: tickets } = await sb
+  .from("tickets")
+  .select("*");
+
+tickets.forEach(ticket => {
+
+  if (!ticket.answers) return;
+
+  let correctCount = 0;
+
+  results.forEach(r => {
+
+    // 👉 WICHTIG: Nur gleiche Ziehung vergleichen
+    if (
+      String(r.day).trim().toLowerCase() ===
+      String(ticket.day).trim().toLowerCase()
+    ) {
+
+      const index = Number(r.question_index);
+
+      console.log("---- CHECK ----");
+      console.log("Ticket Day:", ticket.day);
+      console.log("DB Day:", r.day);
+      console.log("Index:", index);
+      console.log("Ticket value:", ticket.answers[index]);
+      console.log("DB value:", r.correct_answer);
+
+      // 👉 Vergleich
+      if (
+        String(ticket.answers[index]).trim().toLowerCase() ===
+        String(r.correct_answer).trim().toLowerCase()
+      ) {
+        correctCount++;
+      }
+
+    }
+  });
+
+  console.log("---- RESULT ----");
+  console.log("Ticket:", ticket.id);
+  console.log("Richtige:", correctCount);
+
+});
+}
+checkResults();
 
   </script>
 </body>

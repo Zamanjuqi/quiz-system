@@ -1298,54 +1298,51 @@ function calculateChange(){
   });
   
   async function checkout(){
-    if(cart.length === 0){
-  document.getElementById('cartItems').innerHTML = '';
 
-  $('cartPositions').textContent = '';
-  $('cartQuantity').textContent = '';
-  $('cartTotal').textContent = '';
-  $('paymentAmount').textContent = '';
-
-  $('kassierenBtn').disabled = true;
-
+if(cart.length === 0){
+  showModal("⚠️", "Warenkorb leer");
   return;
 }
-  
+
 let total = 0;
 
 cart.forEach(ticket => {
   total += ticket.fields * PRICE_PER_FIELD;
 });
-  
-    if(givenAmount < total){
-      showModal("⚠️ Zu wenig Geld", "Bitte mehr eingeben");
-      return;
-    }
-  
-    for (const ticket of cart) {
+
+if(givenAmount < total){
+  showModal("⚠️ Zu wenig Geld", "Bitte mehr eingeben");
+  return;
+}
+
+for (const ticket of cart) {
+
+  console.log("Ticket:", ticket);
+
   const { error } = await sb
-    .from("tickets")
-    .update({ status: "paid" })
-    .eq("id", ticket.id);
+    .from("tickets") 
+    .update({
+      status: "paid",
+      draw_id: 1
+    })
+    .eq("id", ticket.id); // 🔥 WICHTIG
 
-  if (error) {
-    showModal("❌ Fehler", "Fehler beim Bezahlen");
-    return;
-  }
+    if (error) {
+  console.log("SUPABASE ERROR:", error); // 👈 NEU
+  showModal("❌ Fehler", "Fehler beim Bezahlen");
+  return;
+}
 
+  ticket.draw_id = 1;
   generateReceipt(ticket);
 }
-  
-   
 
-    $('successText').textContent =
+$('successText').textContent =
   "Rückgeld: " + formatPrice(givenAmount - total);
-
 
 resetUI();
 $('queueInput').focus();
-  
-  }
+}
   
   function generateReceipt(ticket){
 
@@ -1408,7 +1405,10 @@ const qrContainer = document.getElementById("qr");
 qrContainer.innerHTML = "";
 
 new QRCode(qrContainer, {
-  text: ticket.id,
+  text: JSON.stringify({
+    id: ticket.id,
+    draw: ticket.draw_id
+  }),
   width: 100,
   height: 100
 });
