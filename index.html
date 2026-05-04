@@ -190,7 +190,7 @@
     
     <section class="jackpot-box">
       <h3>Aktueller Jackpot</h3>
-      <div class="amount">25.000 Dinar</div>
+      <div class="amount" id="jackpotAmount">Lädt...</div>
       <div class="date" id="availableDay">Samstag, 22:00 Uhr</div>
       <div class="countdown" id="countdownBox" style="display:none;">
         <span class="label">Annahmeschluss in: </span>
@@ -208,29 +208,8 @@
     </section>
     
     <section class="winners">
-      <h3>Top Gewinner letzte Woche</h3>
-      <div class="winner-card gold">
-        <div class="winner-rank">1.</div>
-        <div class="winner-info"><div class="name">Spieler 8472</div><div class="label">Gewinner</div></div>
-        <div class="winner-amount">10.000<br><small style="font-weight:400;font-size:14px;">Dinar</small></div>
-      </div>
-      <div class="winner-card silver">
-        <div class="winner-rank">2.</div>
-        <div class="winner-info"><div class="name">Spieler 3156</div><div class="label">Gewinner</div></div>
-        <div class="winner-amount">5.000<br><small style="font-weight:400;font-size:14px;">Dinar</small></div>
-      </div>
-      <div class="winner-card bronze">
-        <div class="winner-rank">3.</div>
-        <div class="winner-info"><div class="name">Spieler 9023</div><div class="label">Gewinner</div></div>
-        <div class="winner-amount">2.500<br><small style="font-weight:400;font-size:14px;">Dinar</small></div>
-      </div>
-      <div class="places-4-10">
-        <div class="left">
-          <div class="rank-box">4-10</div>
-          <div class="info"><div class="title">Platz 4 - 10</div><div class="sub">7 weitere Gewinner</div></div>
-        </div>
-        <div class="right"><div class="amount">Je 1.000</div><div class="unit">Dinar</div></div>
-      </div>
+      <h3 id="winnersTitle">Top Gewinner</h3>
+      <div id="winnersContainer"></div>
     </section>
   </div>
 
@@ -391,6 +370,165 @@
     const SUPABASE_URL = "https://oinnxzalelhafopsgone.supabase.co";
     const SUPABASE_KEY = "sb_publishable_in8Vaok_nPwg-Vifp2MoRA_cSv2Y1tX";
     const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    
+    function getNowInIraq() {
+  const now = new Date();
+
+  return new Date(
+    now.toLocaleString("en-US", { timeZone: "Asia/Baghdad" })
+  );
+}
+
+    async function loadJackpot() {
+
+const { data, error } = await sb
+  .from("draws")
+  .select("*")
+  .ilike("day", getAvailableDay())
+  .limit(1);
+
+if (error || !data || data.length === 0) {
+  console.error("Jackpot Fehler:", error);
+  return;
+}
+
+const draw = data[0];
+const jackpot = draw.jackpot || 0;
+
+document.getElementById("jackpotAmount").textContent =
+  jackpot.toLocaleString("de-DE") + " Dinar";
+
+}
+
+function getLastDrawDay() {
+  const now = getNowInIraq();
+  const day = now.getDay(); // 0=So, 1=Mo, ...
+
+  // Sonntag, Montag, Dienstag, Mittwoch → letzte Ziehung war Samstag
+  if (day === 0 || day === 1 || day === 2 || day === 3) {
+    return "Samstag";
+  }
+
+  // Donnerstag, Freitag, Samstag → letzte Ziehung war Mittwoch
+  return "Mittwoch";
+}
+
+async function loadWinners() {
+
+  const lastDraw = getLastDrawDay();
+
+const { data: tickets } = await sb
+  .from("tickets")
+  .select("*")
+  .ilike("day", lastDraw);
+
+const container = document.getElementById("winnersContainer");
+container.innerHTML = "";
+
+if (!tickets || tickets.length === 0) {
+  container.innerHTML = "<p>Keine Daten</p>";
+  return;
+}
+
+
+// 🔢 Gruppen erstellen
+const groups = {
+  6: [],
+  5: [],
+  4: [],
+  3: [],
+  2: [],
+  1: []
+};
+
+tickets.forEach(t => {
+  const c = t.correct_count || 0;
+  if (groups[c]) groups[c].push(t);
+});
+
+
+const levels = [6,5,4,3,2,1];
+
+levels.forEach((level, index) => {
+
+const winners = groups[level];
+const count = winners.length;
+
+let win = 0;
+
+if (count > 0) {
+  win = winners[0].winning_amount || 0;
+}
+
+const div = document.createElement("div");
+
+if (index === 0) div.className = "winner-card gold";
+else if (index === 1) div.className = "winner-card silver";
+else if (index === 2) div.className = "winner-card bronze";
+else div.className = "winner-card";
+
+div.innerHTML = `
+  <div class="winner-rank">${index + 1}</div>
+  <div class="winner-info">
+    <div class="name">${count} Gewinner</div>
+    <div class="label">${level} richtige Antworten</div>
+  </div>
+  <div class="winner-amount">
+    ${win.toLocaleString("de-DE")}<br>
+    <small>Dinar</small>
+  </div>
+`;
+
+container.appendChild(div);
+});
+
+const tag = lastDraw;
+const datum = getLastDrawDate(tag);
+
+document.getElementById("winnersTitle").textContent =
+  `Top Gewinner (${tag}, ${datum})`;
+}
+
+function subscribeToJackpot() {
+  sb
+    .channel('draws-changes')
+    .on(
+      'postgres_changes',
+      {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'draws'
+      },
+      (payload) => {
+        console.log("🔥 LIVE UPDATE:", payload);
+
+        const draw = payload.new;
+        const jackpot = draw.jackpot || 0;
+
+        document.getElementById("jackpotAmount").textContent =
+          jackpot.toLocaleString("de-DE") + " Dinar";
+      }
+    )
+    .subscribe();
+}
+
+function subscribeToWinners() {
+  sb
+    .channel('tickets-changes')
+    .on(
+      'postgres_changes',
+      {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'tickets'
+      },
+      (payload) => {
+        console.log("🔥 Gewinner Update:", payload);
+        loadWinners(); // 👉 UI neu laden
+      }
+    )
+    .subscribe();
+}
 
     // ===== GAME STATE =====
     const PRICE_PER_FIELD = 2500;
@@ -414,25 +552,55 @@
 ];
 
 function getAvailableDay() {
-  const now = new Date();
+  const now = getNowInIraq();
+
+  // 👉 fix: immer lokale Zeit sauber nehmen
   const day = now.getDay(); // 0=So, 1=Mo, ..., 6=Sa
+
+  // Sonntag (0), Montag (1), Dienstag (2) → Mittwoch
+  if (day === 0 || day === 1 || day === 2) {
+    return "Mittwoch";
+  }
+
+  // Mittwoch (3) → bis 22 Uhr Mittwoch
+  if (day === 3) {
+    return "Mittwoch";
+  }
+
+  // Donnerstag (4), Freitag (5), Samstag (6) → Samstag
+  return "Samstag";
+}
+
+function getLastDrawDay() {
+  const now = getNowInIraq();
+  const day = now.getDay();
   const hour = now.getHours();
 
-  // Mittwoch bis 22 Uhr → Mittwoch
-  if (day < 3) return "Mittwoch"; // So, Mo, Di
-  if (day === 3 && hour < 22) return "Mittwoch";
+  // Mittwoch
+  if (day === 3) {
+    return hour < 23 ? "Samstag" : "Mittwoch";
+  }
 
-  // Nach Mittwoch 22 Uhr → Samstag
-  if (day === 3 && hour >= 22) return "Samstag";
-  if (day === 4 || day === 5) return "Samstag"; // Do, Fr
-  if (day === 6 && hour < 22) return "Samstag";
+  // Samstag
+  if (day === 6) {
+    return hour < 23 ? "Mittwoch" : "Samstag";
+  }
 
-  // Nach Samstag 22 Uhr → wieder Mittwoch
-  return "Mittwoch";
+  // Sonntag, Montag, Dienstag → letzte Ziehung war Samstag
+  if (day === 0 || day === 1 || day === 2) {
+    return "Samstag";
+  }
+
+  // Donnerstag, Freitag → letzte Ziehung war Mittwoch
+  if (day === 4 || day === 5) {
+    return "Mittwoch";
+  }
+
+  return "Samstag";
 }
 
 function getNextDrawDate(dayName) {
-  const now = new Date();
+  const now = getNowInIraq();
   const targetDay = dayName === "Mittwoch" ? 3 : 6; // 3=Mi, 6=Sa
 
   const date = new Date(now);
@@ -460,7 +628,7 @@ function getNextDrawDate(dayName) {
 
     function generateDraws(day) {
       const draws = [];
-      const now = new Date();
+      const now = getNowInIraq();
       for (let i = 0; i < 7; i++) {
         const d = new Date();
         d.setDate(now.getDate() + i);
@@ -646,31 +814,32 @@ q.a.forEach(answer => {
       showScreen('homeScreen');
     }
 
-    // ===== COUNTDOWN TIMER =====
     function updateCountdown() {
-      const now = new Date();
-      const hour = now.getHours();
-      const minutes = now.getMinutes();
-      const seconds = now.getSeconds();
+  const now = getNowInIraq();
+  const hour = now.getHours();
+  const minutes = now.getMinutes();
+  const seconds = now.getSeconds();
 
-      const day = getAvailableDay();
-const drawDate = getNextDrawDate(day);
+  const day = getAvailableDay();
+  const drawDate = getNextDrawDate(day);
 
-document.getElementById('availableDay').textContent = drawDate + ' - 22:00 Uhr';
+  document.getElementById('availableDay').textContent = drawDate + ' - 23:00 Uhr';
 
-      const isLastHour = hour === 21;
-      const countdownBox = document.getElementById('countdownBox');
-      
-      if (isLastHour) {
-        const secondsUntil22 = (22 - hour - 1) * 3600 + (60 - minutes - 1) * 60 + (60 - seconds);
-        const mins = Math.floor(secondsUntil22 / 60).toString().padStart(2, '0');
-        const secs = (secondsUntil22 % 60).toString().padStart(2, '0');
-        document.getElementById('countdownTime').textContent = `${mins}:${secs}`;
-        countdownBox.style.display = 'block';
-      } else {
-        countdownBox.style.display = 'none';
-      }
-    }
+  const isLastHour = hour === 22;
+  const countdownBox = document.getElementById('countdownBox');
+  
+  if (isLastHour) {
+    const secondsUntil23 = (23 - hour - 1) * 3600 + (60 - minutes - 1) * 60 + (60 - seconds);
+    
+    const mins = Math.floor(secondsUntil23 / 60).toString().padStart(2, '0');
+    const secs = (secondsUntil23 % 60).toString().padStart(2, '0');
+    
+    document.getElementById('countdownTime').textContent = `${mins}:${secs}`;
+    countdownBox.style.display = 'block';
+  } else {
+    countdownBox.style.display = 'none';
+  }
+}
 
     // ===== INIT =====
     function init() {
@@ -678,13 +847,23 @@ document.getElementById('availableDay').textContent = drawDate + ' - 22:00 Uhr';
       document.querySelectorAll('.field-btn .dots').forEach(container => {
         for (let i = 0; i < 24; i++) {
           const dot = document.createElement('div');
-          container.appendChild(dot);
+          container.appendChild(dot);  
         }
       });
+
+      loadJackpot();
+      loadWinners();
+
+      subscribeToJackpot();
+      subscribeToWinners();
+
+      setInterval(loadJackpot, 5000);
 
       updateCountdown();
       setInterval(updateCountdown, 1000);
     }
+
+  
 
     init();
     async function saveTicket(ticket){
@@ -763,6 +942,15 @@ await sb
       jackpot: (draw.jackpot || 0) + ticketPrice * 0.6
     })
     .eq("id", draw.id);
+
+    const newJackpot = (draw.jackpot || 0) + ticketPrice * 0.6;
+
+// UI sofort aktualisieren
+document.getElementById("jackpotAmount").textContent =
+  Math.round(newJackpot).toLocaleString("de-DE") + " Dinar";
+
+  await loadJackpot();
+
 } catch (e) {
   console.error("Speichern fehlgeschlagen:", e);
   alert("Verbindung fehlgeschlagen. Bitte erneut versuchen.");
@@ -873,6 +1061,7 @@ const distribution = {
   3: 0.05
 };
 
+
 // 💰 Gewinne berechnen
 for (const level of [6,5,4,3]) {
 
@@ -898,7 +1087,6 @@ for (const level of [6,5,4,3]) {
 
 console.log("✅ Gewinne berechnet");
 }
-checkResults();
 
   </script>
 </body>
