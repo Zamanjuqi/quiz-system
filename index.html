@@ -379,25 +379,25 @@
   );
 }
 
-    async function loadJackpot() {
+async function loadJackpot() {
 
 const { data, error } = await sb
   .from("draws")
   .select("*")
-  .ilike("day", getAvailableDay())
-  .limit(1);
+  .eq("status", "open")
+  .order("draw_date", { ascending: true })
+  .limit(1)
+  .single();
 
-if (error || !data || data.length === 0) {
+if (error || !data) {
   console.error("Jackpot Fehler:", error);
   return;
 }
 
-const draw = data[0];
-const jackpot = draw.jackpot || 0;
+const jackpot = data.jackpot || 0;
 
 document.getElementById("jackpotAmount").textContent =
-  jackpot.toLocaleString("de-DE") + " Dinar";
-
+  Math.round(jackpot).toLocaleString("de-DE") + " Dinar";
 }
 
 function getLastDrawDay() {
@@ -415,12 +415,25 @@ function getLastDrawDay() {
 
 async function loadWinners() {
 
-  const lastDraw = getLastDrawDay();
+  // 🔥 LETZTE ABGESCHLOSSENE ZIEHUNG HOLEN
+const { data: lastDrawData } = await sb
+  .from("draws")
+  .select("*")
+  .eq("status", "closed")
+  .order("draw_date", { ascending: false })
+  .limit(1)
+  .single();
 
+if (!lastDrawData) {
+  console.log("Keine abgeschlossene Ziehung");
+  return;
+}
+
+// 🔥 NUR TICKETS DIESER ZIEHUNG
 const { data: tickets } = await sb
   .from("tickets")
   .select("*")
-  .ilike("day", lastDraw);
+  .eq("draw_id", lastDrawData.id);
 
 const container = document.getElementById("winnersContainer");
 container.innerHTML = "";
@@ -482,8 +495,11 @@ div.innerHTML = `
 container.appendChild(div);
 });
 
-const tag = lastDraw;
-const datum = getLastDrawDate(tag);
+const tag = lastDrawData.day;
+const datum = new Date(lastDrawData.draw_date).toLocaleDateString("de-DE", {
+  day: "2-digit",
+  month: "2-digit"
+});
 
 document.getElementById("winnersTitle").textContent =
   `Top Gewinner (${tag}, ${datum})`;
@@ -904,35 +920,41 @@ if (!queueNumber) {
 const ticketPrice = totalFields * 2500;
 console.log("selectedDay:", selectedDay);
 
-const ticket = {
-  fields: totalFields,
-  day: selectedDay,
-  status: "unpaid",
-  queue: queueNumber,
-  answers: allAnswers.flat(),   // 🔥 HIER HINZUFÜGEN
-  created_at: new Date().toISOString()
-};
 
 let savedTicket;
 
 try {
-  savedTicket = await saveTicket(ticket);
+
   // 🔥 DRAW LADEN
   const { data, error: drawError } = await sb
   .from("draws")
   .select("*")
-  .ilike("day", selectedDay)
-  .limit(1);
+  .eq("status", "open")
+  .order("draw_date", { ascending: true })
+  .limit(1)
+  .single();
 
 console.log("selectedDay:", selectedDay);
 console.log("DB Ergebnis:", data);
 
-const draw = data?.[0];
+const draw = data;
 
 if (drawError || !draw) {
   console.error("Draw Fehler:", drawError, data);
   return;
 }
+
+const ticket = {
+  fields: totalFields,
+  day: selectedDay,
+  draw_id: draw.id,   // 🔥 HIER IST DER MAGIC
+  status: "unpaid",
+  queue: queueNumber,
+  answers: allAnswers.flat(),
+  created_at: new Date().toISOString()
+};
+
+savedTicket = await saveTicket(ticket);
 
 // 🔥 DRAW UPDATEN
 await sb
