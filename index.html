@@ -387,7 +387,7 @@ const { data, error } = await sb
   .eq("status", "open")
   .order("draw_date", { ascending: true })
   .limit(1)
-  .single();
+  .maybeSingle();
 
 if (error || !data) {
   console.error("Jackpot Fehler:", error);
@@ -398,19 +398,6 @@ const jackpot = data.jackpot || 0;
 
 document.getElementById("jackpotAmount").textContent =
   Math.round(jackpot).toLocaleString("de-DE") + " Dinar";
-}
-
-function getLastDrawDay() {
-  const now = getNowInIraq();
-  const day = now.getDay(); // 0=So, 1=Mo, ...
-
-  // Sonntag, Montag, Dienstag, Mittwoch → letzte Ziehung war Samstag
-  if (day === 0 || day === 1 || day === 2 || day === 3) {
-    return "Samstag";
-  }
-
-  // Donnerstag, Freitag, Samstag → letzte Ziehung war Mittwoch
-  return "Mittwoch";
 }
 
 async function loadWinners() {
@@ -786,8 +773,11 @@ q.a.forEach(answer => {
         timeLeft--;
         document.getElementById('timerDisplay').textContent = `${timeLeft} Sekunden`;
         if (timeLeft <= 0) {
-          nextQuestion();
-        }
+
+         playerAnswers.push("");
+
+         nextQuestion();
+       }
       }, 1000);
     }
 
@@ -873,7 +863,6 @@ q.a.forEach(answer => {
       subscribeToJackpot();
       subscribeToWinners();
 
-      setInterval(loadJackpot, 5000);
 
       updateCountdown();
       setInterval(updateCountdown, 1000);
@@ -934,9 +923,9 @@ try {
   .from("draws")
   .select("*")
   .eq("status", "open")
-  .order("draw_date", { ascending: true })
+  .order("draw_date", { ascending: false })
   .limit(1)
-  .single();
+  .maybeSingle();
 
 console.log("selectedDay:", selectedDay);
 console.log("DB Ergebnis:", data);
@@ -954,7 +943,7 @@ const ticket = {
   draw_id: draw.id,   // 🔥 HIER IST DER MAGIC
   status: "unpaid",
   queue: queueNumber,
-  answers: allAnswers.flat(),
+  answers: allAnswers,
   created_at: new Date().toISOString()
 };
 
@@ -1019,18 +1008,17 @@ setTimeout(() => {
 }, 5000);
 }
 
-async function checkResults() {
+async function checkResults(drawId) {
 
-const { data: results } = await sb
+  const { data: results } = await sb
   .from("draw_results")
-  .select("*");
+  .select("*")
+  .eq("draw_id", drawId);
 
   const { data: lastDraw } = await sb
   .from("draws")
   .select("*")
-  .eq("status", "closed")
-  .order("draw_date", { ascending: true })
-  .limit(1)
+  .eq("id", drawId)
   .maybeSingle();
 
 if (!lastDraw) {
@@ -1039,10 +1027,9 @@ if (!lastDraw) {
 }
 // 🔥 HIER EINFÜGEN
 
-const now = new Date();
+const now = getNowInIraq();
 
-const drawTimeUTC = new Date(lastDraw.draw_date);
-const drawTime = new Date(drawTimeUTC.getTime() + (3 * 60 * 60 * 1000));
+const drawTime = new Date(lastDraw.draw_date);
 
 if (now < drawTime) {
 
@@ -1057,14 +1044,16 @@ if (lastDraw.status === "processed") {
   return;
 }
 
-const { data: tickets } = await sb
+let { data: tickets } = await sb
   .from("tickets")
   .select("*")
   .eq("draw_id", lastDraw.id);
 
 let jackpot = lastDraw.jackpot || 0;
 
-if (!tickets || tickets.length === 0) return;
+if (!tickets) {
+  tickets = [];
+}
 
 let totalMoney = 0;
 
@@ -1088,26 +1077,46 @@ for (const ticket of tickets) {
 
   if (!ticket.answers) continue;
 
+  let bestCorrectCount = 0;
+
+// 🔥 Alle Felder prüfen
+for (const fieldAnswers of ticket.answers || []) {
+
   let correctCount = 0;
 
   results.forEach(r => {
+
     if (ticket.draw_id === r.draw_id) {
+
       const index = Number(r.question_index);
 
-      if (
-        String(ticket.answers[index]).trim().toLowerCase() ===
-        String(r.correct_answer).trim().toLowerCase()
-      ) {
+      const playerAnswer =
+        String(fieldAnswers[index] || "").trim().toLowerCase();
+
+      const correctAnswer =
+        String(r.correct_answer || "").trim().toLowerCase();
+
+      if (playerAnswer === correctAnswer) {
         correctCount++;
       }
+
     }
+
   });
 
-  ticket.correct_count = correctCount;
-
-  if (correctCount >= 3) {
-    groups[correctCount].push(ticket);
+  // 🔥 Bestes Feld merken
+  if (correctCount > bestCorrectCount) {
+    bestCorrectCount = correctCount;
   }
+
+}
+
+ticket.correct_count = bestCorrectCount;
+
+// 🔥 Gewinn-Gruppen
+if (bestCorrectCount >= 3) {
+  groups[bestCorrectCount].push(ticket);
+}
 }
 
 // Gewinnverteilung
@@ -1186,27 +1195,46 @@ const { data: existingOpen } = await sb
   .select("id")
   .eq("status", "open")
   .limit(1)
-  .single();
+  .maybeSingle();
 
 if (existingOpen) {
   console.log("⚠️ Es existiert bereits eine offene Ziehung → keine neue erstellt");
   return;
 }
 
-// 🔥 NEUE ZIEHUNG erstellen
+let nextDate = new Date(lastDraw.draw_date);
+
+if (lastDraw.day === "Mittwoch") {
+
+  // nächste Ziehung Samstag
+  nextDate.setDate(nextDate.getDate() + 3);
+
+} else {
+
+  // nächste Ziehung Mittwoch
+  nextDate.setDate(nextDate.getDate() + 4);
+
+}
+
+// Irak 23:00 Uhr = UTC 20:00
+nextDate.setUTCHours(20, 0, 0, 0);
+
 await sb.from("draws").insert({
-  draw_date: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+  draw_date: nextDate.toISOString(),
   jackpot: nextJackpot,
   total_amount: 0,
   house_profit: 0,
-  status: "open"
+  status: "open",
+  day: lastDraw.day === "Mittwoch"
+    ? "Samstag"
+    : "Mittwoch"
 });
 
 }
 
 async function autoDrawSystem() {
 
-  const now = new Date();
+  const now = getNowInIraq();
 
 const { data: draw } = await sb
   .from("draws")
@@ -1221,9 +1249,7 @@ if (!draw) {
   return;
 }
 
-const drawTimeUTC = new Date(draw.draw_date);
-// 👉 in Bagdad Zeit umrechnen (+3 Stunden)
-const drawTime = new Date(drawTimeUTC.getTime() + (3 * 60 * 60 * 1000));
+const drawTime = new Date(draw.draw_date);
 
 console.log("JETZT:", now);
 console.log("DRAW:", drawTime);
@@ -1240,7 +1266,7 @@ await sb
   .update({ status: "closed" })
   .eq("id", draw.id);
 
-await checkResults();
+  await checkResults(draw.id);
 }
 
   </script>
