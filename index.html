@@ -165,8 +165,7 @@
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-</head>
-<body>
+</head><body>
   <!-- HOME SCREEN -->
   <div id="homeScreen" class="screen active">
     <header class="header">KURDISTAN Quiz</header>
@@ -217,7 +216,7 @@
   <div id="fieldsScreen" class="screen screen-lime">
     <header class="header-bar">
       <div class="logo"><span class="icon">🎯</span><span class="text">KURDISTAN Quiz</span></div>
-      <div class="deadline"><div class="label">Annahmeschluss</div><div class="value">Sa. 19:00</div></div>
+      <div class="deadline"><div class="label">Annahmeschluss</div><div class="value">Sa. 23:00</div></div>
       <div class="price">0,00 D</div>
     </header>
     
@@ -768,18 +767,43 @@ q.a.forEach(answer => {
     }
 
     function startTimer() {
-      if (timerInterval) clearInterval(timerInterval);
-      timerInterval = setInterval(() => {
-        timeLeft--;
-        document.getElementById('timerDisplay').textContent = `${timeLeft} Sekunden`;
-        if (timeLeft <= 0) {
 
-         playerAnswers.push("");
+if (timerInterval) clearInterval(timerInterval);
 
-         nextQuestion();
-       }
-      }, 1000);
+timerInterval = setInterval(() => {
+
+  timeLeft--;
+
+  document.getElementById('timerDisplay').textContent =
+    `${timeLeft} Sekunden`;
+
+  if (timeLeft <= 0) {
+
+    const q = questions[currentQuestion];
+
+    // Choice Fragen
+    if (q.type === "choice") {
+
+      const randomAnswer =
+        q.a[Math.floor(Math.random() * q.a.length)];
+
+      playerAnswers.push(randomAnswer);
+
+    } else {
+
+      // Input Fragen
+      const randomNumber =
+        Math.floor(Math.random() * 100).toString();
+
+      playerAnswers.push(randomNumber);
+
     }
+
+    nextQuestion();
+  }
+
+}, 1000);
+}
 
     function nextQuestion() {
   if (currentQuestion < 5) {
@@ -941,7 +965,7 @@ const ticket = {
   fields: totalFields,
   day: selectedDay,
   draw_id: draw.id,   // 🔥 HIER IST DER MAGIC
-  status: "unpaid",
+  status: "pending",
   queue: queueNumber,
   answers: allAnswers,
   created_at: new Date().toISOString()
@@ -950,23 +974,6 @@ const ticket = {
 savedTicket = await saveTicket(ticket);
 
 // 🔥 DRAW UPDATEN
-const houseCut = ticketPrice * 0.4;
-await sb
-    .from("draws")
-    .update({
-  total_amount: (draw.total_amount || 0) + ticketPrice,
-  jackpot: (draw.jackpot || 0) + ticketPrice * 0.6,
-  house_profit: (draw.house_profit || 0) + houseCut
-})
-    .eq("id", draw.id);
-
-    const newJackpot = (draw.jackpot || 0) + ticketPrice * 0.6;
-
-// UI sofort aktualisieren
-document.getElementById("jackpotAmount").textContent =
-  Math.round(newJackpot).toLocaleString("de-DE") + " Dinar";
-
-  await loadJackpot();
 
 } catch (e) {
   console.error("Speichern fehlgeschlagen:", e);
@@ -1015,6 +1022,14 @@ async function checkResults(drawId) {
   .select("*")
   .eq("draw_id", drawId);
 
+  // 🔥 Sicherheitscheck
+if (!results || results.length < 6) {
+
+console.log("❌ Nicht genug Antworten eingetragen");
+
+return;
+}
+
   const { data: lastDraw } = await sb
   .from("draws")
   .select("*")
@@ -1047,7 +1062,8 @@ if (lastDraw.status === "processed") {
 let { data: tickets } = await sb
   .from("tickets")
   .select("*")
-  .eq("draw_id", lastDraw.id);
+  .eq("draw_id", lastDraw.id)
+  .eq("status", "paid");
 
 let jackpot = lastDraw.jackpot || 0;
 
@@ -1261,12 +1277,86 @@ if (now < drawTime) {
 
 console.log("🔥 Ziehung wird geschlossen:", draw.id);
 
-await sb
+// 🔥 Nur schließen wenn noch open
+const { data: updatedRows } = await sb
   .from("draws")
   .update({ status: "closed" })
+  .eq("id", draw.id)
+  .eq("status", "open")
+  .select();
+
+
+// 🔥 Wenn bereits anderer Browser schneller war → STOP
+if (!updatedRows || updatedRows.length === 0) {
+
+  console.log("⚠️ Bereits verarbeitet von anderem Browser");
+
+  return;
+}
+
+await checkResults(draw.id);
+}
+
+
+async function activateTicket(queueNumber) {
+
+// Ticket finden
+const { data: ticket, error } = await sb
+  .from("tickets")
+  .select("*")
+  .eq("queue", queueNumber)
+  .eq("status", "pending")
+  .maybeSingle();
+
+if (error || !ticket) {
+  console.error("Ticket nicht gefunden");
+  return false;
+}
+
+if (ticket.status !== "pending") {
+  console.log("⛔ Ticket bereits verarbeitet");
+  return false;
+}
+
+// Zugehörige Ziehung holen
+const { data: draw } = await sb
+  .from("draws")
+  .select("*")
+  .eq("id", ticket.draw_id)
+  .maybeSingle();
+
+if (!draw) {
+  console.error("Ziehung nicht gefunden");
+  return false;
+}
+
+await sb
+  .from("tickets")
+  .update({
+    status: "paid",
+    paid_at: new Date().toISOString()
+  })
+  .eq("id", ticket.id);
+
+
+// Jackpot erhöhen
+const ticketPrice = (ticket.fields || 1) * 2500;
+const houseCut = ticketPrice * 0.4;
+
+await sb
+  .from("draws")
+  .update({
+    total_amount: (draw.total_amount || 0) + ticketPrice,
+    jackpot: (draw.jackpot || 0) + ticketPrice * 0.6,
+    house_profit: (draw.house_profit || 0) + houseCut
+  })
   .eq("id", draw.id);
 
-  await checkResults(draw.id);
+console.log("✅ Ticket aktiviert:", queueNumber);
+
+await loadJackpot();
+
+return true;
 }
 
   </script>
