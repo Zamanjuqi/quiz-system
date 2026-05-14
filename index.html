@@ -380,10 +380,13 @@
 
 async function loadJackpot() {
 
+  const availableDay = getAvailableDay();
+
 const { data, error } = await sb
   .from("draws")
   .select("*")
   .eq("status", "open")
+  .eq("day", availableDay)
   .order("draw_date", { ascending: true })
   .limit(1)
   .maybeSingle();
@@ -419,7 +422,8 @@ async function loadWinners() {
 const { data: tickets } = await sb
   .from("tickets")
   .select("*")
-  .eq("draw_id", lastDrawData.id);
+  .eq("draw_id", lastDrawData.id)
+  .eq("status", "paid");
 
 const container = document.getElementById("winnersContainer");
 container.innerHTML = "";
@@ -564,13 +568,15 @@ function getAvailableDay() {
     return "Mittwoch";
   }
 
-  // Mittwoch (3) → bis 22 Uhr Mittwoch
-  if (day === 3) {
-    return "Mittwoch";
-  }
+  // Mittwoch
+if (day === 3) {
+  return now.getHours() < 23
+    ? "Mittwoch"
+    : "Samstag";
+}
 
-  // Donnerstag (4), Freitag (5), Samstag (6) → Samstag
-  return "Samstag";
+// Donnerstag, Freitag, Samstag
+return "Samstag";
 }
 
 function getLastDrawDay() {
@@ -602,22 +608,27 @@ function getLastDrawDay() {
 }
 
 function getNextDrawDate(dayName) {
-  const now = getNowInIraq();
-  const targetDay = dayName === "Mittwoch" ? 3 : 6; // 3=Mi, 6=Sa
 
-  const date = new Date(now);
-  
-  while (date.getDay() !== targetDay || date <= now) {
-    date.setDate(date.getDate() + 1);
-  }
+const now = getNowInIraq();
 
-  const formatted = date.toLocaleDateString('de-DE', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric'
-  });
+const targetDay =
+  dayName === "Mittwoch" ? 3 : 6;
 
-  return `${dayName}, ${formatted}`;
+const date = new Date(now);
+
+date.setHours(23, 0, 0, 0);
+
+while (date.getDay() !== targetDay || date <= now) {
+  date.setDate(date.getDate() + 1);
+}
+
+const formatted = date.toLocaleDateString('de-DE', {
+  day: '2-digit',
+  month: '2-digit',
+  year: 'numeric'
+});
+
+return `${dayName}, ${formatted}`;
 }
 
     function formatPrice(price) {
@@ -632,8 +643,8 @@ function getNextDrawDate(dayName) {
       const draws = [];
       const now = getNowInIraq();
       for (let i = 0; i < 7; i++) {
-        const d = new Date();
-        d.setDate(now.getDate() + i);
+        const d = new Date(now);
+        d.setDate(d.getDate() + i);
         const dayOfWeek = d.getDay();
         if (day === 'Mittwoch' && dayOfWeek === 3) {
           draws.push('Mittwoch ' + d.toLocaleDateString('de-DE'));
@@ -647,10 +658,18 @@ function getNextDrawDate(dayName) {
 
     // ===== SCREEN NAVIGATION =====
     function showScreen(screenId) {
-      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-      document.getElementById(screenId).classList.add('active');
-    }
 
+if (screenId !== 'quizScreen' && timerInterval) {
+  clearInterval(timerInterval);
+}
+
+document.querySelectorAll('.screen').forEach(s =>
+  s.classList.remove('active')
+);
+
+document.getElementById(screenId)
+  .classList.add('active');
+}
     // ===== FIELDS SCREEN =====
     function selectFields(num) {
       totalFields = num;
@@ -805,37 +824,57 @@ timerInterval = setInterval(() => {
 }, 1000);
 }
 
-    function nextQuestion() {
-  if (currentQuestion < 5) {
-    currentQuestion++;
-    timeLeft = 50;
-    renderQuiz();
-  } else {
+function nextQuestion() {
 
-    if (currentField < totalFields - 1) {
-
-      allAnswers.push([...playerAnswers]); // 🔥 Feld speichern
-      playerAnswers = []; // 🔥 reset
-
-      currentField++;
-      currentQuestion = 0;
-      timeLeft = 50;
-      renderQuiz();
-
-    } else {
-
-      if (playerAnswers.length > 0) {
-  allAnswers.push([...playerAnswers]);
+// 🔥 Alten Timer IMMER stoppen
+if (timerInterval) {
+  clearInterval(timerInterval);
 }
 
-      if (timerInterval) clearInterval(timerInterval);
-      showResult();
+if (currentQuestion < 5) {
+
+  currentQuestion++;
+  timeLeft = 50;
+
+  renderQuiz();
+  startTimer();
+
+} else {
+
+  if (currentField < totalFields - 1) {
+
+    allAnswers.push([...playerAnswers]);
+
+    playerAnswers = [];
+
+    currentField++;
+    currentQuestion = 0;
+    timeLeft = 50;
+
+    renderQuiz();
+    startTimer();
+
+  } else {
+
+    if (playerAnswers.length > 0) {
+      allAnswers.push([...playerAnswers]);
     }
+
+    if (timerInterval) {
+  clearInterval(timerInterval);
+}
+
+showResult();
   }
+}
 }
 
 
     function newGame() {
+      
+      if (timerInterval) {
+  clearInterval(timerInterval);
+}
       totalFields = 1;
       selectedDay = getAvailableDay();
       currentField = 0;
@@ -923,15 +962,20 @@ return data;
 async function showResult(){
   const { data: queueNumber, error: qErr } = await sb.rpc('get_free_queue');
 
-if (qErr) {
-  console.error("Queue Fehler:", qErr);
-  alert("Fehler bei Queue");
-  return;
+  if (qErr || queueNumber === null || queueNumber === undefined) {
+
+console.error("Queue Fehler:", qErr);
+
+alert("Queue Fehler");
+
+return;
 }
 
 if (!queueNumber) {
-  alert("Alle Plätze (1–10) sind gerade belegt. Bitte warten.");
-  return;
+
+alert("Alle Plätze (1–10) sind gerade belegt. Bitte warten.");
+
+return;
 }
 
 const ticketPrice = totalFields * 2500;
@@ -947,7 +991,8 @@ try {
   .from("draws")
   .select("*")
   .eq("status", "open")
-  .order("draw_date", { ascending: false })
+  .eq("day", selectedDay)
+  .order("draw_date", { ascending: true })
   .limit(1)
   .maybeSingle();
 
@@ -972,6 +1017,15 @@ const ticket = {
 };
 
 savedTicket = await saveTicket(ticket);
+
+if (!savedTicket || !savedTicket.id) {
+
+alert("Ticket konnte nicht gespeichert werden");
+
+newGame();
+
+return;
+}
 
 // 🔥 DRAW UPDATEN
 
@@ -1057,6 +1111,13 @@ if (now < drawTime) {
 if (lastDraw.status === "processed") {
   console.log("⚠️ Bereits verarbeitet");
   return;
+}
+
+if (lastDraw.status !== "closed") {
+
+console.log("⛔ Ziehung noch nicht geschlossen");
+
+return;
 }
 
 let { data: tickets } = await sb
@@ -1252,10 +1313,13 @@ async function autoDrawSystem() {
 
   const now = getNowInIraq();
 
+  const availableDay = getAvailableDay();
+
 const { data: draw } = await sb
   .from("draws")
   .select("*")
   .eq("status", "open")
+  .eq("day", availableDay)
   .order("draw_date", { ascending: true })
   .limit(1)
   .maybeSingle();
