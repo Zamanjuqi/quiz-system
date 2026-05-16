@@ -747,11 +747,11 @@ const btn = document.createElement('button');
 btn.className = 'answer-btn';
 btn.textContent = 'Weiter';
 
-btn.onclick = () => {
+btn.onclick = async () => {
   if (!input.value.trim()) return;
 
-  playerAnswers.push(input.value.trim()); // 🔥 SPEICHERN
-  nextQuestion();
+  playerAnswers.push(input.value.trim());
+  await nextQuestion();
 };
 
 container.appendChild(input);
@@ -764,9 +764,9 @@ q.a.forEach(answer => {
   const btn = document.createElement('button');
   btn.className = 'answer-btn';
   btn.textContent = answer;
-  btn.onclick = () => {
+  btn.onclick = async () => {
   playerAnswers.push(answer);
-  nextQuestion();
+  await nextQuestion();
 };
   container.appendChild(btn);
 });
@@ -789,7 +789,7 @@ q.a.forEach(answer => {
 
 if (timerInterval) clearInterval(timerInterval);
 
-timerInterval = setInterval(() => {
+timerInterval = setInterval(async () => {
 
   timeLeft--;
 
@@ -818,13 +818,13 @@ timerInterval = setInterval(() => {
 
     }
 
-    nextQuestion();
+  await nextQuestion();
   }
 
 }, 1000);
 }
 
-function nextQuestion() {
+async function nextQuestion() {
 
 // 🔥 Alten Timer IMMER stoppen
 if (timerInterval) {
@@ -864,7 +864,7 @@ if (currentQuestion < 5) {
   clearInterval(timerInterval);
 }
 
-showResult();
+await showResult();
   }
 }
 }
